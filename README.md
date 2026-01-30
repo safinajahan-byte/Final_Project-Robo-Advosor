@@ -30,7 +30,7 @@ The project is built modularly to ensure scalability and follow software enginee
 ## Getting Started
 
 1. Installation
-Ensure you have an Anaconda environment activated, then install the dependencies:
+Ensure an Anaconda environment activated, then install the dependencies:
 
 **bash**
 pip install yfinance pandas numpy seaborn matplotlib statsmodels scikit-learn
