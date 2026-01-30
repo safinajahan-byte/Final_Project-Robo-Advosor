@@ -1,33 +1,62 @@
 import yfinance as yf
 import pandas as pd
+import os
 
 def get_data():
     """Downloads and cleans stock/macro data."""
-    print("⬇️ [1/4] Downloading Data...")
-    tickers = {'SPY': 'S&P500', '^VIX': 'VIX_Volatility', 
-               '^TNX': '10Y_Treasury', 'CL=F': 'Oil_Price', 'GC=F': 'Gold_Price'}
+    print("[1/4] Downloading Data...")
     
+    tickers = {
+        'SPY': 'S&P500', 
+        '^VIX': 'VIX_Volatility', 
+        '^TNX': '10Y_Treasury', 
+        'CL=F': 'Oil_Price', 
+        'GC=F': 'Gold_Price'
+    }
+    
+    # Download data
     df = yf.download(list(tickers.keys()), start="2010-01-01", end="2024-01-01", auto_adjust=True)
     
-    # Handle MultiIndex
+    # Handle the "MultiIndex" issue common with new yfinance versions
     try:
-        df = df['Close']
-    except KeyError:
-        pass # Already flat
+        # If 'Close' is a top-level column, grab it
+        if 'Close' in df.columns.levels[0]:
+            df = df['Close']
+    except AttributeError:
+        # If it's already flat (older versions or single ticker), just copy
+        pass
         
+    # Rename columns
+    # We strip the ticker symbols to match our friendly names
     df.rename(columns=tickers, inplace=True)
     
-    # Imputation: Forward Fill (Justified for Time-Series)
+    # Imputation: Forward Fill
     df.fillna(method='ffill', inplace=True)
     df.fillna(method='bfill', inplace=True)
     
-    # Feature Engineering: Target = Next Quarter Return
-    df['Target_Return'] = df['S&P500'].shift(-63) / df['S&P500'] - 1
+    # Feature Engineering
+    df['Target_NextQ_Return'] = df['S&P500'].shift(-63) / df['S&P500'] - 1
     
-    return df.dropna()
+    df_clean = df.dropna()
+    print(f"   Data Processed. Shape: {df_clean.shape}")
+    return df_clean
 
 if __name__ == "__main__":
-    # Test this script independently
+    # 1. Run the function
     df = get_data()
-    print(df.head())
-    df.to_csv("processed_data.csv")
+    
+    # 2. Define the filename explicitly
+    filename = "cleaned_stock_data.csv"
+    
+    # 3. Save it
+    df.to_csv(filename)
+    
+    # 4. PROOF: Print exactly where it is
+    current_dir = os.getcwd()
+    file_path = os.path.join(current_dir, filename)
+    
+    if os.path.exists(file_path):
+        print(f"\nSUCCESS! File saved at:\n{file_path}")
+        print("You can now run 'eda.py' or your notebook.")
+    else:
+        print("Error: File was not saved. Check permissions.")
